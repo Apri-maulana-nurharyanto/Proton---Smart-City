@@ -4,10 +4,10 @@
 #include <UniversalTelegramBot.h>
 
 // CONNECT KE TELEGRAM
-const char* ssid = ""; //Nama penyedia hotspot
-const char* password = ""; //Password hotspot
-#define BOT_TOKEN "" // token bot dari BotFather
-#define CHAT_ID   "" // chat id tujuan
+const char* ssid = "Heian"; //Nama penyedia hotspot
+const char* password = "13245768"; //Password hotspot
+#define BOT_TOKEN "7886524250:AAEku9WPvcRUwi3VIyDFFqv6hbLDQ40Ygxk" // token bot dari BotFather
+#define CHAT_ID   "8094590457" // chat id tujuan
 
 // Deklarasi Pin
 #define MQ2_PIN 34 //Pin sensor mq2 
@@ -36,7 +36,7 @@ void setup() {
 
   // Output pesan jika sudah terkoneksi
   Serial.println("\nWiFi terhubung!");
-  bot.sendMessage(CHAT_ID, "🚀 *ESP32 Gas & Air Quality Monitor*\nPerangkat aktif dan siap memantau kualitas udara! ✅", "");
+  bot.sendMessage(CHAT_ID, "🚀 *UDIN (Udara Detektor Inovasi)*\nSiap memantau kualitas udara! ✅", "");
 
   // Input & Output Sensor
   pinMode(MQ2_PIN, INPUT);
