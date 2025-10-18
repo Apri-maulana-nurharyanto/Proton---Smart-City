@@ -1,43 +1,76 @@
+// LIBRARY 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
+
+// CONNECT KE TELEGRAM
 const char* ssid = ""; //Nama penyedia hotspot
-const char* password = ""; //Password nya
-#define BOT_TOKEN ""   // token bot dari BotFather
-#define CHAT_ID   ""     // chat id tujuan
-WiFiClientSecure client;
-UniversalTelegramBot bot(BOT_TOKEN, client);
-#define buzzer 16 //Pin buzzer di ESP32
-#define AO_PIN 34 //Pin esnsor di MQ2
+const char* password = ""; //Password hotspot
+#define BOT_TOKEN "" // token bot dari BotFather
+#define CHAT_ID   "" // chat id tujuan
+
+// Deklarasi Pin
+#define MQ2_PIN 34 //Pin sensor mq2 
+#define MQ135_PIN 32 //Pin sensor mq135
+#define BUZZER_PIN 16 //Pin Buzzer
+
+// untuk menghubungkan ke telegram
+WiFiClientSecure secured_client;
+UniversalTelegramBot bot(BOT_TOKEN, secured_client);
+
+int batasAman = 1000; //Batas aman
+
 void setup() {
-  Serial.begin(9600); //Baudrate
-  WiFi.begin(ssid, password); //Syarat untuk connect
-  client.setInsecure();
-  Serial.println("Menghubungkan ke WiFi/Jaringan..."); //Mencoba connect ke jaringan
-  while (WiFi.status() != WL_CONNECTED) { //Jika belum connect
+  Serial.begin(9600); // komunikasi baudrate
+
+  // Menguhungkan ke koneksi hotspot
+  WiFi.begin(ssid, password);
+  secured_client.setInsecure(); // Nonaktifkan sertifikat SSL
+  Serial.println("Menghubungkan WiFi...");
+
+  // Jika belum bisa terkoneksi
+  while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
-    Serial.println("Menghubungkan kembali..."); //Mencoba connect kemnbali
+    Serial.print("Menghubungkan...");
   }
-  Serial.println("WiFi Terhubung!"); //Sudah connect
-  bot.sendMessage(CHAT_ID, "✅EPS32 SUDAH ONLINE", ""); //Program sudah ONLINE
-  bot.sendMessage(CHAT_ID, "🔎Pendeteksi gas otomatis", "");
-  bot.sendMessage(CHAT_ID, "📌Hasil pemantauan terkini :", "");
-  pinMode(AO_PIN, INPUT); //Sensor sebagai input
-  pinMode(buzzer, OUTPUT); //buzzer sebagai output
-  digitalWrite(buzzer, LOW); //buzzer default mati
+
+  // Output pesan jika sudah terkoneksi
+  Serial.println("\nWiFi terhubung!");
+  bot.sendMessage(CHAT_ID, "🚀 *ESP32 Gas & Air Quality Monitor*\nPerangkat aktif dan siap memantau kualitas udara! ✅", "");
+
+  // Input & Output Sensor
+  pinMode(MQ2_PIN, INPUT);
+  pinMode(MQ135_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  digitalWrite(BUZZER_PIN, LOW); // Buzzer default mati
 }
+
 void loop() {
-  int nilaiGas = analogRead(AO_PIN); //membaca nilai dari sensor (Analog)
-  Serial.println("Nilai gas adalah : "); //menampilkan di serial monitor
-  Serial.println(nilaiGas);
-  if (nilaiGas > 500) {
-    bot.sendMessage(CHAT_ID, "❗❗❗PERINGATAN!, TERDETEKSI ADA GAS", ""); //mengirimkan pesan ke telegram jika ada gas terdeteksi
-    Serial.println("Terdeteksi ada gas bang"); //menampilkan di serial monitor
-    digitalWrite(buzzer, HIGH); //menyalakan buzzer
+  int mq2Value = analogRead(MQ2_PIN); // Membaca nilai dari sensor mq2
+  int mq135Value = analogRead(MQ135_PIN); // Membaca nilai dari sensor mq135
+
+  // tampilkan nilai di serial monitor
+  Serial.print("MQ2: ");
+  Serial.print(mq2Value);
+  Serial.print(" | MQ135: ");
+  Serial.print(mq135Value);
+
+  // Buat pesan pemantauan
+  String pesanPemantauan = "📊 *Laporan Pemantauan Udara*\n"
+                           "-----------------------------\n"
+                           "💨 MQ2  (Gas): " + String(mq2Value) + "\n"
+                           "🌿 MQ135 (Polusi Udara): " + String(mq135Value) + "\n"
+                           "-----------------------------\n";
+
+  // cek apakah sensor melewati batas aman
+  if (mq2Value > batasAman || mq135Value > batasAman) {
+    bot.sendMessage(CHAT_ID, pesanPemantauan + "⚠️ *Status*: Bahaya Terdeteksi!\n🚨 Kadar gas/polusi melebihi batas aman.\nMohon segera cek lingkungan Anda!", "");
+    digitalWrite(BUZZER_PIN, HIGH); // menyalakan buzzer
   } else {
-    bot.sendMessage(CHAT_ID, "🔔Kondisi aman, sedang mendeteksi...", ""); //mengirimkan pesan ke telegram jika tidak ada gas terdeteksi
-    Serial.println("Aman bang ga ada gas"); //menampilkan di serial monitor
-    digitalWrite(buzzer, LOW); //buzzer mati
+    bot.sendMessage(CHAT_ID, pesanPemantauan + "✅ *Status*: Aman\nLingkungan dalam kondisi normal. Pemantauan berlanjut... ⏳", "");
+    digitalWrite(BUZZER_PIN, LOW); // mematikan buzzer
   }
-  delay(3000); //pesan dikirim setiap 3 detik
+
+  delay(3000); // pesan dikirim setiap 3 detik
 }
